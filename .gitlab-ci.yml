@@ -1,0 +1,74 @@
+stages:
+  - test
+  - build
+  - integration_test
+  - publish
+  - deploy
+
+.backend:
+  image: python
+  before_script:
+    - pip3 install .[tests]
+    - cd backend
+
+test::code:
+  stage: test
+  extends:
+    - .backend
+  script:
+    - coverage run --source='.' manage.py test
+    - coverage xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
+
+
+test::robot:
+  stage: test
+  extends:
+    - .backend
+  script:
+    - echo "To do"
+
+build::docs:
+  stage: build
+  image:
+    name: michaelfbryan/mdbook-docker-image
+    entrypoint: [""]
+  script:
+    - mdbook build
+  artifacts:
+    paths:
+      - book
+
+build::code:
+  stage: build
+  extends:
+    - .backend
+  script:
+    - echo "Nothing to do here"
+
+pages:
+  stage: publish
+  script:
+  - mkdir public
+  - cp -r book public
+  # - cp -r test public
+  - >
+      echo "
+      <!DOCTYPE html>
+        <html>
+          <head>
+          </head>
+          <body>
+            <p>Docs <a href=\"/share/book/index.html\">this link</a>.</p>
+          </body>
+        </html>
+      " > public/index.html
+  artifacts:
+    paths:
+    - public
+    expire_in: 1 day
+
